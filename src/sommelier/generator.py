@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from jinja2 import Environment, FileSystemLoader, BaseLoader, TemplateNotFound, TemplateSyntaxError
 
-from .utils import ensure_directories, safe_write_file
+from .utils import ensure_directories, safe_write_file, TemplateFieldResolver
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,15 @@ class Generator:
         context = job.get('context', {})
 
         try:
+            # Resolve template variables in context
+            resolver = TemplateFieldResolver(self.env, context)
+            resolved_context = resolver.resolve_all()
+            logger.debug(f"Resolved context: {resolved_context}")
+        except (ValueError, KeyError) as e:
+            logger.error(f"Error resolving context in job '{job_name}': {e}")
+            return False
+
+        try:
             is_inline = '\n' in template_str or '{%' in template_str or '{{' in template_str
 
             if is_inline:
@@ -64,8 +73,8 @@ class Generator:
             return False
 
         try:
-            logger.debug(f"Rendering template with context: {context}")
-            rendered = template.render(context)
+            logger.debug(f"Rendering template with resolved context")
+            rendered = template.render(resolved_context)
         except Exception as e:
             logger.error(f"Error rendering template for job '{job_name}': {e}")
             return False
