@@ -93,7 +93,9 @@ def ensure_directories(path: str) -> Path:
 
 
 def safe_write_file(path: str, content: str) -> None:
-    """Write content to file with backup of existing file.
+    """Write content to file with backup of existing file if content changed.
+
+    If the file already exists with identical content, skip write and backup.
 
     Args:
         path: File path to write to
@@ -102,7 +104,17 @@ def safe_write_file(path: str, content: str) -> None:
     p = Path(path)
     ensure_directories(p.parent)
 
+    # If file exists, check if content is identical
     if p.exists():
+        try:
+            existing_content = p.read_text()
+            if existing_content == content:
+                logger.debug(f"File unchanged, skipping write: {p}")
+                return
+        except Exception as e:
+            logger.debug(f"Could not read existing file {p}: {e}")
+
+        # Content differs, create backup
         backup_path = Path(str(p) + '.bak')
         copy2(p, backup_path)
         logger.info(f"Backed up existing file to {backup_path}")
