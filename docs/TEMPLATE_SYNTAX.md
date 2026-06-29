@@ -2,7 +2,36 @@
 
 Sommelier uses Jinja2 for template rendering. This guide covers the essentials.
 
+**Note:** Templates can be either:
+- **File-based**: Reference a template file in `.sommelier/tmplts/`
+- **Inline**: Define template content directly in `.sommelier/schema.yaml`
+
 For complete documentation, see the [official Jinja2 docs](https://jinja.palletsprojects.com/).
+
+## File-based vs Inline Templates
+
+### File Template
+```yaml
+jobs:
+  my_entity:
+    template: entity.java.j2          # Reference file in tmplts/
+    output: generated/Entity.java
+    context:
+      name: User
+```
+
+### Inline Template
+```yaml
+jobs:
+  my_entity:
+    template: |                       # Multiline template string
+      public class {{ name }} {
+        // Generated
+      }
+    output: generated/Entity.java
+    context:
+      name: User
+```
 
 ## Variables
 

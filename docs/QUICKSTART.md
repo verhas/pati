@@ -10,67 +10,60 @@ pip install sommelier
 
 ## 2. Initialize a Project
 
-Choose a template and initialize a new project:
+Initialize a new project in current directory:
 
 ```bash
-sommelier init --template java-spring --output my-project
-cd my-project
+sommelier init
 ```
 
-This creates:
-- `schema.yaml` — Your data model configuration
-- `templates/` — Jinja2 templates for code generation
+This creates the `.sommelier/` directory structure:
+```
+.sommelier/
+├── schema.yaml    # Your data model configuration
+└── tmplts/        # Template files directory
+```
 
-## 3. Explore the Schema
+## 3. Explore the Default Schema
 
-Open `schema.yaml` and see the structure:
+Open `.sommelier/schema.yaml`:
 
 ```yaml
-template_dir: templates
+# Sommelier Configuration
+# Jobs are defined as a map, where each key is a job name.
+# Each job has:
+#   - template: Either a template filename or inline Jinja2 template
+#   - output: Path where the generated file will be written
+#   - context: Dictionary of variables passed to the template
 
-shared: &base_package
-  package: com.example.demo
-
-jobs:
-  - template: entity.java.j2
-    output: generated/Entity.java
-    context:
-      <<: *base_package
-      entity_name: User
-      table_name: users
-      fields:
-        - name: id
-          type: Long
-          annotation: "@Id @GeneratedValue"
-        # ... more fields
+jobs: {}
+  # my_entity:
+  #   template: entity.java.j2
+  #   output: generated/Entity.java
+  #   context:
+  #     entity_name: User
 ```
 
 **Key concepts:**
-- `template_dir` — Location of your Jinja2 templates
-- `shared` — Reusable data with YAML anchors (`&name`) and aliases (`<<: *name`)
-- `jobs` — Array of generation tasks
-  - `template` — Template file to render
+- `.sommelier/schema.yaml` — Your default schema (no argument needed to use it)
+- `.sommelier/tmplts/` — Location of your Jinja2 templates (default)
+- `jobs` — Dictionary of generation tasks (key = job name)
+  - `template` — Template file name or inline Jinja2 template
   - `output` — Where to write the generated file
   - `context` — Data passed to the template
 
-## 4. Look at a Template
+## 4. Add a Job with Inline Template
 
-Open `templates/entity.java.j2`:
+Edit `.sommelier/schema.yaml` and add an inline template:
 
-```jinja2
-package {{ package }}.entity;
-
-@Entity
-@Table(name = "{{ table_name }}")
-public class {{ entity_name }} {
-
-{% for field in fields %}
-    {{ field.annotation }}
-    private {{ field.type }} {{ field.name }};
-
-{% endfor %}
-    // getters and setters...
-}
+```yaml
+jobs:
+  hello:
+    template: |
+      #!/bin/bash
+      echo "Hello {{ name }}!"
+    output: generated/hello.sh
+    context:
+      name: World
 ```
 
 **Template syntax:**
@@ -85,37 +78,110 @@ public class {{ entity_name }} {
 Dry run (preview without writing):
 
 ```bash
-sommelier generate schema.yaml --dry-run
+sommelier generate --dry-run
 ```
 
 Real generation (creates files):
 
 ```bash
-sommelier generate schema.yaml
+sommelier generate
 ```
 
-Check the `generated/` folder — you'll see `Entity.java`, `UserDTO.java`, etc.
+Check the output:
+```bash
+cat generated/hello.sh
+```
 
-## 6. Customize
+## 6. Use Template Files Instead
 
-Edit `schema.yaml` to change your data model:
+Create a template file: `.sommelier/tmplts/entity.java.j2`
+
+```jinja2
+package {{ package }}.entity;
+
+@Entity
+public class {{ entity_name }} {
+{% for field in fields %}
+    private {{ field.type }} {{ field.name }};
+{% endfor %}
+}
+```
+
+Update `.sommelier/schema.yaml`:
 
 ```yaml
-context:
-  entity_name: Product  # was: User
-  table_name: products  # was: users
-  fields:
-    - name: sku
-      type: String
+jobs:
+  user_entity:
+    template: entity.java.j2          # Reference to file in tmplts/
+    output: generated/User.java
+    context:
+      package: com.example
+      entity_name: User
+      fields:
+        - name: id
+          type: Long
+        - name: username
+          type: String
 ```
 
-Then regenerate:
-
+Generate:
 ```bash
-sommelier generate schema.yaml
+sommelier generate
 ```
 
-The templates will adapt to your new data!
+## 7. Multiple Jobs
+
+Add more jobs as a map:
+
+```yaml
+jobs:
+  user_entity:
+    template: entity.java.j2
+    output: generated/User.java
+    context:
+      entity_name: User
+
+  product_entity:
+    template: entity.java.j2
+    output: generated/Product.java
+    context:
+      entity_name: Product
+
+  config_file:
+    template: |
+      app_name={{ app }}
+      version={{ version }}
+    output: generated/app.conf
+    context:
+      app: MyApp
+      version: 1.0.0
+```
+
+## 8. Reusable Config with YAML Anchors
+
+Use anchors to avoid repetition:
+
+```yaml
+shared:
+  java_config: &java
+    package: com.example
+    
+  common_fields: &base_fields
+    - name: id
+      type: Long
+
+jobs:
+  user_entity:
+    template: entity.java.j2
+    output: generated/User.java
+    context:
+      <<: *java
+      entity_name: User
+      fields:
+        <<: *base_fields
+        - name: username
+          type: String
+```
 
 ## Next Steps
 
@@ -124,58 +190,47 @@ The templates will adapt to your new data!
 - [Real-world examples](EXAMPLES.md)
 - [Template best practices](https://jinja.palletsprojects.com/)
 
-## Common Patterns
-
-### Multiple tables/entities
-
-Add more jobs to `schema.yaml`:
-
-```yaml
-jobs:
-  - template: entity.java.j2
-    output: generated/User.java
-    context:
-      entity_name: User
-      # ...
-
-  - template: entity.java.j2
-    output: generated/Product.java
-    context:
-      entity_name: Product
-      # ...
-```
-
-### Reusable config with anchors
-
-```yaml
-shared:
-  common_fields: &common
-    - name: id
-      type: Long
-    - name: created_at
-      type: DateTime
-
-jobs:
-  - template: entity.java.j2
-    output: generated/User.java
-    context:
-      entity_name: User
-      fields:
-        <<: *common
-        - name: username
-          type: String
-```
-
-### Override output directory
+## Common Commands
 
 ```bash
-sommelier generate schema.yaml --output-dir /path/to/output
+# Generate using default schema (.sommelier/schema.yaml)
+sommelier generate
+
+# Generate with dry-run
+sommelier generate --dry-run
+
+# Generate from specific schema
+sommelier generate path/to/schema.yaml
+
+# Override output directory
+sommelier generate --output-dir /path/to/output
+
+# List available templates
+sommelier list
+
+# Initialize new project
+sommelier init
+
+# Show version
+sommelier --version
+
+# Show help
+sommelier --help
 ```
 
-## Getting Help
+## Tips
 
-- List available templates: `sommelier list-templates`
-- Show help: `sommelier --help`
-- Show command help: `sommelier generate --help`
+✨ **Inline vs File Templates**
+- Use inline templates for small, simple templates
+- Use file templates when they get large or reusable
+
+✨ **Job Naming**
+- Use descriptive job names: `user_entity`, `config_file`, `migration`
+- Job names appear in generation progress messages
+
+✨ **Schema Organization**
+- Keep related jobs together
+- Use anchors for shared configuration
+- Add comments to complex contexts
 
 Happy generating!

@@ -2,17 +2,32 @@
 
 Complete reference for Sommelier's YAML configuration format.
 
+## Project Structure
+
+The default Sommelier project uses this structure:
+
+```
+my-project/
+└── .sommelier/
+    ├── schema.yaml       # Your configuration file
+    └── tmplts/           # Template files directory
+```
+
+The default schema location is `.sommelier/schema.yaml` and default template directory is `.sommelier/tmplts/`.
+
 ## Top-level Keys
 
 ### `template_dir` (optional)
 Path to the directory containing your Jinja2 templates.
 
-**Default:** Directory of the config file
+**Default:** `.sommelier/tmplts/` (relative to schema.yaml)
 
 **Example:**
 ```yaml
-template_dir: ./templates
+template_dir: templates    # Relative to schema.yaml location
 ```
+
+**Note:** Usually not needed, as `.sommelier/tmplts/` is the default.
 
 ### `shared` (optional)
 Shared data that can be reused across jobs using YAML anchors and aliases.
@@ -27,31 +42,43 @@ shared:
 ```
 
 ### `jobs` (required)
-List of generation jobs to execute.
+Dictionary/map of generation jobs. Each key is a job name.
 
-**Example:**
+**Format:**
 ```yaml
 jobs:
-  - template: user_entity.j2
-    output: generated/User.java
-    context:
-      name: User
+  job_name:
+    template: ...
+    output: ...
+    context: ...
 ```
 
 ---
 
 ## Job Configuration
 
-Each job in the `jobs` array must have:
+Each job in the `jobs` dictionary must have:
 
 ### `template` (required)
-Name of the Jinja2 template file (relative to `template_dir`).
+Either:
+1. **Template filename** — Name of file in `tmplts/` directory
+2. **Inline template** — Multiline Jinja2 template string
 
 **Type:** string
 
-**Example:**
+**Examples:**
+
+Template file reference:
 ```yaml
 template: entity.java.j2
+```
+
+Inline template:
+```yaml
+template: |
+  class {{ name }} {
+    // Auto-generated
+  }
 ```
 
 ### `output` (required)
@@ -83,6 +110,36 @@ context:
 
 ---
 
+## Template Detection
+
+Sommelier automatically detects whether a template is a filename or inline content:
+
+- **Inline template** — If contains `{{`, `{%`, or newlines
+- **Template filename** — Simple string without template syntax
+
+Examples:
+```yaml
+jobs:
+  # Treated as inline template (contains {{)
+  greeting:
+    template: "echo {{ message }}"
+    output: output.txt
+
+  # Treated as template filename
+  entity:
+    template: entity.java.j2
+    output: output.java
+
+  # Clearly inline (multiline)
+  config:
+    template: |
+      [app]
+      name={{ app_name }}
+    output: config.ini
+```
+
+---
+
 ## YAML Anchors and Aliases
 
 Use YAML anchors (`&name`) and aliases (`*name`) to define reusable blocks:
@@ -96,10 +153,11 @@ shared:
     author: John Doe
 
 jobs:
-  - template: entity.java.j2
+  user_entity:
+    template: entity.java.j2
     output: generated/User.java
     context:
-      <<: *java  # Merge java_config into context
+      <<: *java              # Merge java_config into context
       class_name: User
 ```
 
@@ -118,15 +176,16 @@ shared:
       type: DateTime
 
 jobs:
-  - template: entity.java.j2
+  user_entity:
+    template: entity.java.j2
     output: generated/User.java
     context:
       package: *pkg
       class_name: User
       fields:
-        <<: *fields
         - name: username
           type: String
+        - <<: *fields         # Merge common fields
 ```
 
 ---
@@ -169,9 +228,7 @@ context:
 ## Complete Example
 
 ```yaml
-# Sommelier YAML Schema
-
-template_dir: templates
+# Sommelier YAML Schema - .sommelier/schema.yaml
 
 # Shared configuration for reuse
 shared:
@@ -187,10 +244,11 @@ shared:
       type: LocalDateTime
       annotation: "@CreationTimestamp"
 
-# Generation jobs
+# Generation jobs (as dictionary with job names)
 jobs:
-  # Generate User entity
-  - template: entity.java.j2
+  # Generate User entity from file template
+  user_entity:
+    template: entity.java.j2
     output: src/main/java/com/example/app/entity/User.java
     context:
       <<: *java
@@ -201,12 +259,10 @@ jobs:
         - name: username
           type: String
           annotation: "@Column(unique=true, nullable=false)"
-        - name: email
-          type: String
-          annotation: "@Column(nullable=false)"
 
   # Generate Product entity
-  - template: entity.java.j2
+  product_entity:
+    template: entity.java.j2
     output: src/main/java/com/example/app/entity/Product.java
     context:
       <<: *java
@@ -216,77 +272,92 @@ jobs:
         <<: *base_fields
         - name: sku
           type: String
-          annotation: "@Column(unique=true, nullable=false)"
-        - name: price
-          type: BigDecimal
-          annotation: "@Column(nullable=false)"
+
+  # Generate config with inline template
+  app_config:
+    template: |
+      # Configuration for {{ app_name }}
+      spring.application.name={{ app_name }}
+      spring.jpa.hibernate.ddl-auto=update
+      server.port={{ port }}
+    output: src/main/resources/application.properties
+    context:
+      app_name: MyApp
+      port: 8080
 
   # Generate repository
-  - template: repository.java.j2
+  user_repository:
+    template: repository.java.j2
     output: src/main/java/com/example/app/repository/UserRepository.java
     context:
       <<: *java
       entity_name: User
-      entity_type: User
       id_type: Long
-
-  # Generate Liquibase migration
-  - template: liquibase.xml.j2
-    output: src/main/resources/db/changelog/001-create-tables.xml
-    context:
-      changelog_id: "001-create-users-table"
-      table_name: users
-      columns:
-        - name: id
-          type: BIGINT
-          constraints: "primaryKey=true autoIncrement=true"
-        - name: username
-          type: VARCHAR(255)
-          constraints: "nullable=false unique=true"
 ```
 
 ---
 
 ## Best Practices
 
-1. **Use anchors for DRY configuration**
+1. **Use job names that describe the purpose**
+   ```yaml
+   jobs:
+     user_entity:       # Good: clear purpose
+     config_file:       # Good: clear purpose
+     my_job_1:          # Bad: not descriptive
+   ```
+
+2. **Use anchors for DRY configuration**
    ```yaml
    shared:
      base_package: &pkg com.example
    
    jobs:
-     - context:
+     my_job:
+       context:
          package: *pkg  # Reuse instead of repeating
    ```
 
-2. **Organize jobs by type**
+3. **Organize jobs by type**
    ```yaml
    jobs:
      # Entities
-     - template: entity.java.j2
+     user_entity:
        ...
-     # DTOs
-     - template: dto.java.j2
+     product_entity:
        ...
+     
      # Repositories
-     - template: repository.java.j2
+     user_repository:
+       ...
+     
+     # Configuration
+     app_config:
        ...
    ```
 
-3. **Keep template names descriptive**
+4. **Use inline templates for small content**
    ```yaml
-   template: entity.java.j2      # Good
-   template: e.j2                # Bad
+   # Good: small inline template
+   greeting:
+     template: "echo {{ message }}"
+     
+   # Better: large template in file
+   entity:
+     template: entity.java.j2
    ```
 
-4. **Use consistent context structure**
+5. **Use consistent context structure**
    ```yaml
    # Good: parallel structure for multiple entities
    jobs:
-     - context:
+     user:
+       context:
          class_name: User
          table_name: users
-     - context:
+     
+     product:
+       context:
          class_name: Product
          table_name: products
    ```
@@ -297,21 +368,45 @@ jobs:
 
 ### Missing required key
 ```
-Error: Job 0 missing 'template' key
+Error: Job 'my_job' missing 'template' key
 ```
-Add the missing key to your job configuration.
+Ensure each job has `template`, `output`, and `context`.
 
 ### Invalid YAML syntax
 ```
 YAML Error: mapping values are not allowed
 ```
-Check for tabs (use spaces), proper indentation, and quote strings with special characters.
+Check for:
+- Tabs (use spaces only)
+- Proper indentation
+- Quotes around strings with special characters
 
 ### Template not found
 ```
-Template not found: entity.java.j2
+ERROR: Template not found: entity.java.j2
 ```
 Verify:
-1. File exists in `template_dir`
+1. File exists in `.sommelier/tmplts/`
 2. Filename matches exactly (case-sensitive)
-3. `template_dir` points to the correct directory
+3. No custom `template_dir` is hiding the file
+
+### Jobs must be dict, not list
+```
+Error: 'jobs' must be a dict/map
+```
+Use dict format:
+```yaml
+jobs:
+  job_name:
+    template: ...
+    output: ...
+    context: ...
+```
+
+Not array format:
+```yaml
+jobs:
+  - template: ...
+    output: ...
+    context: ...
+```

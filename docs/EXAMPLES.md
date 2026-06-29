@@ -6,16 +6,15 @@ Complete working examples showing Sommelier in action.
 
 Generate a JPA entity with associated DTO and repository.
 
-### Schema (schema.yaml)
+### Schema (.sommelier/schema.yaml)
 
 ```yaml
-template_dir: templates
-
 shared: &java
   package: com.example.app
 
 jobs:
-  - template: entity.java.j2
+  user_entity:
+    template: entity.java.j2
     output: generated/User.java
     context:
       <<: *java
@@ -32,7 +31,8 @@ jobs:
           type: String
           annotation: "@Column(nullable = false)"
 
-  - template: dto.java.j2
+  user_dto:
+    template: dto.java.j2
     output: generated/UserDTO.java
     context:
       <<: *java
@@ -45,7 +45,8 @@ jobs:
         - name: email
           type: String
 
-  - template: repository.java.j2
+  user_repository:
+    template: repository.java.j2
     output: generated/UserRepository.java
     context:
       <<: *java
@@ -54,7 +55,7 @@ jobs:
       id_type: Long
 ```
 
-### Template (templates/entity.java.j2)
+### Template (.sommelier/tmplts/entity.java.j2)
 
 ```jinja2
 package {{ package }}.entity;
@@ -84,6 +85,16 @@ public class {{ class_name }} {
 
 {% endfor %}
 }
+```
+
+### Usage
+
+```bash
+# Generate
+sommelier generate
+
+# Or with dry-run
+sommelier generate --dry-run
 ```
 
 ### Generated Output (generated/User.java)
@@ -138,332 +149,346 @@ public class User {
 
 ---
 
-## Example 2: Rust SQLx Model
+## Example 2: Inline Templates for Configuration
 
-Generate a Rust struct with SQLx derive macros.
+Generate configuration files with inline templates.
 
-### Schema (schema.yaml)
+### Schema (.sommelier/schema.yaml)
 
 ```yaml
-template_dir: templates
-
 jobs:
-  - template: model.rs.j2
-    output: generated/user.rs
+  app_properties:
+    template: |
+      # Application Configuration
+      spring.application.name={{ app_name }}
+      spring.profiles.active={{ env }}
+      server.port={{ port }}
+      spring.datasource.url=jdbc:postgresql://{{ db_host }}:{{ db_port }}/{{ db_name }}
+      spring.datasource.username={{ db_user }}
+      spring.jpa.hibernate.ddl-auto=update
+    output: generated/application.properties
     context:
-      struct_name: User
-      derives:
-        - Debug
-        - Clone
-        - Serialize
-        - Deserialize
-      fields:
-        - name: id
-          type: i64
-        - name: username
-          type: String
-        - name: email
-          type: String
-        - name: created_at
-          type: DateTime<Utc>
+      app_name: MyApp
+      env: development
+      port: 8080
+      db_host: localhost
+      db_port: 5432
+      db_name: myapp_db
+      db_user: postgres
+
+  docker_compose:
+    template: |
+      version: '3.8'
+      services:
+        postgres:
+          image: postgres:{{ postgres_version }}
+          environment:
+            POSTGRES_DB: {{ db_name }}
+            POSTGRES_USER: {{ db_user }}
+            POSTGRES_PASSWORD: {{ db_password }}
+          ports:
+            - "{{ db_port }}:5432"
+    output: generated/docker-compose.yml
+    context:
+      postgres_version: '14'
+      db_name: myapp_db
+      db_user: postgres
+      db_password: mysecret
+      db_port: 5432
+
+  bash_script:
+    template: |
+      #!/bin/bash
+      # Setup script for {{ app_name }}
+      echo "Setting up {{ app_name }}..."
+      echo "Environment: {{ env }}"
+      echo "Database: {{ db_name }}"
+    output: generated/setup.sh
+    context:
+      app_name: MyApp
+      env: development
+      db_name: myapp_db
 ```
 
-### Template (templates/model.rs.j2)
+### Usage
 
-```jinja2
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
-
-#[derive({{ derives | join(', ') }}, FromRow)]
-pub struct {{ struct_name }} {
-{% for field in fields %}
-    pub {{ field.name }}: {{ field.type }},
-{% endfor %}
-}
-
-impl {{ struct_name }} {
-    pub fn new({% for field in fields %}{{ field.name }}: {{ field.type }}{{ "," if not loop.last else "" }}{% endfor %}) -> Self {
-        Self {
-{% for field in fields %}
-            {{ field.name }},
-{% endfor %}
-        }
-    }
-}
+```bash
+sommelier generate
 ```
 
-### Generated Output (generated/user.rs)
+### Generated Files
 
-```rust
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
+**generated/application.properties**
+```properties
+# Application Configuration
+spring.application.name=MyApp
+spring.profiles.active=development
+server.port=8080
+...
+```
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct User {
-    pub id: i64,
-    pub username: String,
-    pub email: String,
-    pub created_at: DateTime<Utc>,
-}
-
-impl User {
-    pub fn new(id: i64, username: String, email: String, created_at: DateTime<Utc>) -> Self {
-        Self {
-            id,
-            username,
-            email,
-            created_at,
-        }
-    }
-}
+**generated/docker-compose.yml**
+```yaml
+version: '3.8'
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: myapp_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecret
+    ports:
+      - "5432:5432"
 ```
 
 ---
 
-## Example 3: Python SQLAlchemy Model
+## Example 3: Mixed File and Inline Templates
 
-Generate a Python SQLAlchemy ORM model.
+Combine file templates with inline templates in one schema.
 
-### Schema (schema.yaml)
+### Schema (.sommelier/schema.yaml)
 
 ```yaml
-template_dir: templates
+shared:
+  model_config: &model
+    package: com.example
+    lang: java
 
 jobs:
-  - template: model.py.j2
-    output: generated/models.py
+  # Use file template
+  user_entity:
+    template: entity.java.j2
+    output: generated/User.java
     context:
+      <<: *model
+      class_name: User
+      fields:
+        - name: id
+          type: Long
+        - name: username
+          type: String
+
+  # Use inline template
+  readme:
+    template: |
+      # {{ project_name }} - API Documentation
+
+      ## Models
+      {% for model in models %}
+      - `{{ model }}`
+      {% endfor %}
+
+      ## Quick Start
+      ```bash
+      mvn spring-boot:run
+      ```
+
+      Generated by Sommelier
+    output: generated/README.md
+    context:
+      project_name: MyAPI
+      models:
+        - User
+        - Product
+        - Order
+
+  # Another file template
+  migration:
+    template: migration.sql.j2
+    output: generated/001_create_users.sql
+    context:
+      table_name: users
+      columns:
+        - name: id
+          type: BIGINT PRIMARY KEY AUTO_INCREMENT
+        - name: username
+          type: VARCHAR(255) NOT NULL UNIQUE
+```
+
+---
+
+## Example 4: Complex Job Organization
+
+Organize multiple related jobs with shared configuration.
+
+### Schema (.sommelier/schema.yaml)
+
+```yaml
+shared:
+  java_base: &java
+    package: com.example.app
+    java_version: 11
+
+  common_fields: &common
+    - name: id
+      type: Long
+      annotation: "@Id @GeneratedValue"
+    - name: created_at
+      type: LocalDateTime
+      annotation: "@CreationTimestamp"
+    - name: updated_at
+      type: LocalDateTime
+      annotation: "@UpdateTimestamp"
+
+jobs:
+  # Generate entities
+  user_entity:
+    template: entity.java.j2
+    output: generated/User.java
+    context:
+      <<: *java
       class_name: User
       table_name: users
       fields:
-        - name: id
-          type: Integer
-          primary_key: true
+        <<: *common
         - name: username
-          type: String(255)
-          nullable: false
-          unique: true
-        - name: email
-          type: String(255)
-          nullable: false
-        - name: created_at
-          type: DateTime
-          default: func.now()
-```
+          type: String
 
-### Template (templates/model.py.j2)
-
-```jinja2
-from sqlalchemy import Column, DateTime, Integer, String, func
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
-
-
-class {{ class_name }}(Base):
-    __tablename__ = '{{ table_name }}'
-
-{% for field in fields %}
-    {{ field.name }} = Column(
-        {{ field.type }}{{ "," if not loop.last else "" }}
-        {% if field.primary_key %}primary_key=True{{ "," if field.default or field.unique or not field.nullable else "" }}{% endif %}
-        {% if field.default %}default={{ field.default }}{{ "," if field.unique or not field.nullable else "" }}{% endif %}
-        {% if field.unique %}unique=True{{ "," if not field.nullable else "" }}{% endif %}
-        {% if not field.nullable %}nullable=False{% endif %}
-    )
-
-{% endfor %}
-    def __repr__(self):
-        return f"<{{ class_name }}(id={self.id}, username={self.username})>"
-```
-
-### Generated Output (generated/models.py)
-
-```python
-from sqlalchemy import Column, DateTime, Integer, String, func
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
-
-
-class User(Base):
-    __tablename__ = 'users'
-
-    id = Column(
-        Integer,
-        primary_key=True
-    )
-
-    username = Column(
-        String(255),
-        unique=True,
-        nullable=False
-    )
-
-    email = Column(
-        String(255),
-        nullable=False
-    )
-
-    created_at = Column(
-        DateTime,
-        default=func.now()
-    )
-
-    def __repr__(self):
-        return f"<User(id={self.id}, username={self.username})>"
-```
-
----
-
-## Example 4: Go GORM Model
-
-Generate a Go struct for GORM ORM.
-
-### Schema (schema.yaml)
-
-```yaml
-template_dir: templates
-
-jobs:
-  - template: model.go.j2
-    output: generated/models.go
+  product_entity:
+    template: entity.java.j2
+    output: generated/Product.java
     context:
-      package_name: models
-      struct_name: User
-      table_name: users
+      <<: *java
+      class_name: Product
+      table_name: products
       fields:
-        - name: ID
-          type: uint
-          gorm_tag: "primaryKey"
-        - name: Username
-          type: string
-          gorm_tag: "uniqueIndex;not null"
-        - name: Email
-          type: string
-          gorm_tag: "not null"
-        - name: CreatedAt
-          type: time.Time
-          gorm_tag: "autoCreateTime"
-```
+        <<: *common
+        - name: sku
+          type: String
 
-### Template (templates/model.go.j2)
+  # Generate repositories
+  user_repository:
+    template: repository.java.j2
+    output: generated/UserRepository.java
+    context:
+      <<: *java
+      entity_name: User
 
-```jinja2
-package {{ package_name }}
+  product_repository:
+    template: repository.java.j2
+    output: generated/ProductRepository.java
+    context:
+      <<: *java
+      entity_name: Product
 
-import "time"
+  # Generate documentation
+  entities_doc:
+    template: |
+      # Entity Definitions
 
-type {{ struct_name }} struct {
-{% for field in fields %}
-    {{ field.name }} {{ field.type }} `gorm:"{{ field.gorm_tag }}"`
-{% endfor %}
-}
+      ## User
+      - id (Long, primary key)
+      - username (String)
+      - created_at (LocalDateTime)
+      - updated_at (LocalDateTime)
 
-func ({{ struct_name | lower }}) TableName() string {
-    return "{{ table_name }}"
-}
+      ## Product
+      - id (Long, primary key)
+      - sku (String)
+      - created_at (LocalDateTime)
+      - updated_at (LocalDateTime)
 
-func New{{ struct_name }}(username, email string) *{{ struct_name }} {
-    return &{{ struct_name }}{
-        Username: username,
-        Email: email,
-        CreatedAt: time.Now(),
-    }
-}
-```
-
-### Generated Output (generated/models.go)
-
-```go
-package models
-
-import "time"
-
-type User struct {
-    ID        uint      `gorm:"primaryKey"`
-    Username  string    `gorm:"uniqueIndex;not null"`
-    Email     string    `gorm:"not null"`
-    CreatedAt time.Time `gorm:"autoCreateTime"`
-}
-
-func (user) TableName() string {
-    return "users"
-}
-
-func NewUser(username, email string) *User {
-    return &User{
-        Username: username,
-        Email:    email,
-        CreatedAt: time.Now(),
-    }
-}
-```
-
----
-
-## Using the Examples
-
-Try each example:
-
-```bash
-# Initialize from a template
-sommelier init --template java-spring --output my-project
-cd my-project
-
-# See what would be generated
-sommelier generate schema.yaml --dry-run
-
-# Generate the code
-sommelier generate schema.yaml
-
-# Check the generated files
-ls -la generated/
-cat generated/User.java
+      Generated by Sommelier
+    output: generated/ENTITIES.md
+    context: {}
 ```
 
 ---
 
 ## Tips and Tricks
 
-1. **Reuse schemas across projects**
-   ```bash
-   cp -r examples/java-spring my-new-java-project
-   ```
+### 1. Use Descriptive Job Names
 
-2. **Extend templates**
-   Add your own logic to generated templates:
-   ```jinja2
-   {% if add_lombok %}
-   @Data
-   {% endif %}
-   ```
+```yaml
+jobs:
+  user_entity:        # Good
+  product_dto:        # Good
+  j1:                 # Bad: not descriptive
+```
 
-3. **Generate multiple variants**
-   ```yaml
-   jobs:
-     - template: entity.java.j2
-       output: generated/User.java
-       context:
-         entity_name: User
-     - template: entity.java.j2
-       output: generated/Product.java
-       context:
-         entity_name: Product
-   ```
+### 2. Mix File and Inline Templates
 
-4. **Version your schemas**
-   ```bash
-   git add schema.yaml  # Track changes to data model
-   ```
+- **File templates**: Large, reusable across projects
+- **Inline templates**: Small, configuration-specific
 
-5. **Use environment-specific contexts**
-   ```bash
-   # Generate for development
-   sommelier generate schema.dev.yaml
-   
-   # Generate for production
-   sommelier generate schema.prod.yaml
-   ```
+```yaml
+jobs:
+  entity:
+    template: entity.java.j2          # File template
+  
+  config:
+    template: |
+      app={{ name }}
+```
+
+### 3. Organize by Type
+
+Group related jobs together in your schema:
+
+```yaml
+jobs:
+  # Entities
+  user_entity:
+  product_entity:
+
+  # Repositories
+  user_repository:
+  product_repository:
+
+  # Configuration
+  app_config:
+  docker_config:
+```
+
+### 4. Use Anchors for DRY Configuration
+
+```yaml
+shared:
+  common: &common
+    author: John Doe
+    license: MIT
+
+jobs:
+  file1:
+    context:
+      <<: *common
+      extra: value
+```
+
+### 5. Generate Multiple Variants
+
+```yaml
+jobs:
+  dev_config:
+    template: |
+      ENV=development
+      DEBUG=true
+    output: generated/dev.env
+    context: {}
+
+  prod_config:
+    template: |
+      ENV=production
+      DEBUG=false
+    output: generated/prod.env
+    context: {}
+```
+
+### 6. Version Control Your Schema
+
+```bash
+git add .sommelier/schema.yaml
+git add .sommelier/tmplts/
+```
+
+Track changes to your data model and templates over time.
+
+### 7. Use Environment Variables in Inline Templates
+
+```yaml
+context:
+  db_host: "{{ lookup('env', 'DB_HOST') | default('localhost') }}"
+```
+
+Note: This requires Jinja2 environment setup. By default, use simple context values.
