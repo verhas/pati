@@ -1,15 +1,21 @@
-# pati
+# Patisserie
 
-[![PyPI Version](https://img.shields.io/pypi/v/patisserie.svg)](https://pypi.org/project/patisserie/)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE-MIT)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE-APACHE)
+<p align="center">
+  <img src="logo.svg" alt="Patisserie logo" width="540"/>
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/patisserie/"><img src="https://img.shields.io/pypi/v/patisserie.svg" alt="PyPI Version"/></a>
+  <img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="Python 3.8+"/>
+  <a href="LICENSE-MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"/></a>
+  <a href="LICENSE-APACHE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"/></a>
+</p>
 
 **Language-agnostic boilerplate code generator from YAML data models and Jinja2 templates.**
 
 Define your data model once in YAML. Generate boilerplate code in any language (Java, Rust, Python, Go, TypeScript, etc.) using Jinja2 templates.
 
-## Why pati?
+## Why Pattiserie?
 
 - **Single Source of Truth**: Define your data model once, generate code for multiple languages
 - **Template-Driven**: Use Jinja2 to create language-specific templates
@@ -21,17 +27,17 @@ Define your data model once in YAML. Generate boilerplate code in any language (
 
 ### Installation
 
-```bash
-pip install patisserie
-```
+    pip install patisserie
 
 ### 5-Minute Example
 
 1. **Initialize a project:**
-   ```bash
-   mkdir my-project && cd my-project
-   pati init
-   ```
+
+
+     mkdir my-project && cd my-project
+     pati init
+
+The `pati init` command will create the `.pati` directory for you and create the sample `schema.yaml` and templates files you can edit. 
 
 2. **Edit your data model** (`.pati/schema.yaml`):
    ```yaml
