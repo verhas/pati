@@ -6,6 +6,15 @@ __pycache__/
 # C extensions
 *.so
 
+.pati
+
+misc.xml
+modules.xml
+profiles_settings.xml
+Project_Default.xml
+*.iml
+vcs.xml
+
 # Distribution / packaging
 .Python
 build/
