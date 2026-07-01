@@ -8,7 +8,8 @@ dynamic = ["version"]
 description = "Language-agnostic boilerplate generator from YAML data models"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT OR Apache-2.0"}
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE", "LICENSE-MIT", "LICENSE-APACHE"]
 authors = [
     {name = "Peter Verhas", email = "peter.verhas@gmail.com"},
 ]
@@ -17,8 +18,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Code Generators",
-    "License :: OSI Approved :: MIT License",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",

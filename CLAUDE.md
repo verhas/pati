@@ -12,8 +12,7 @@
 pati/
 ├── README.md                          # Main documentation
 ├── CLAUDE.md                          # This file (Claude Code instructions)
-├── setup.py                           # Python package metadata
-├── pyproject.toml                     # Modern Python project config
+├── pyproject.toml                     # Python project config (build, deps, metadata)
 ├── build.sh                           # Build and package script
 ├── release.sh                         # PyPI release script
 ├── docs/
@@ -254,81 +253,28 @@ echo -e "${GREEN}✓ Package available at: https://pypi.org/project/pati/${VERSI
 
 ---
 
-## setup.py and pyproject.toml
-
-### setup.py
-```python
-from setuptools import setup, find_packages
-
-setup(
-    name="pati",
-    version="0.1.0",
-    author="Your Name",
-    author_email="your.email@example.com",
-    description="Language-agnostic boilerplate generator from YAML data models",
-    long_description=open("README.md").read(),
-    long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/pati",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
-    package_data={
-        "pati": ["examples/**/*"],
-    },
-    python_requires=">=3.8",
-    install_requires=[
-        "pyyaml>=6.0",
-        "jinja2>=3.0",
-    ],
-    extras_require={
-        "dev": [
-            "pytest>=7.0",
-            "pytest-cov>=4.0",
-            "black>=22.0",
-            "flake8>=5.0",
-            "twine>=4.0",
-        ],
-    },
-    entry_points={
-        "console_scripts": [
-            "pati=pati.cli:main",
-        ],
-    },
-    classifiers=[
-        "Development Status :: 3 - Alpha",
-        "Intended Audience :: Developers",
-        "Topic :: Software Development :: Code Generators",
-        "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-    ],
-)
-```
-
-### pyproject.toml
+## pyproject.toml
 ```toml
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pati"
-version = "0.1.0"
+name = "patisserie"
+dynamic = ["version"]
 description = "Language-agnostic boilerplate generator from YAML data models"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT"}
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE", "LICENSE-MIT", "LICENSE-APACHE"]
 authors = [
-    {name = "Your Name", email = "your.email@example.com"},
+    {name = "Peter Verhas", email = "peter.verhas@gmail.com"},
 ]
 keywords = ["code-generation", "boilerplate", "yaml", "jinja2", "templates"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Code Generators",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -359,6 +305,9 @@ Issues = "https://github.com/yourusername/pati/issues"
 [project.scripts]
 pati = "pati.cli:main"
 
+[tool.setuptools.dynamic]
+version = {attr = "pati.__version__"}
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
@@ -388,7 +337,7 @@ exclude = [".git", "__pycache__", "build", "dist"]
 1. **Phase 1 - Core**: `config.py`, `generator.py`, `cli.py`, `utils.py`
 2. **Phase 2 - Examples**: Create 4 example templates (Java, Rust, Python, Go)
 3. **Phase 3 - Testing**: Write `test_*.py` files with good coverage
-4. **Phase 4 - Packaging**: `setup.py`, `pyproject.toml`, `build.sh`
+4. **Phase 4 - Packaging**: `pyproject.toml`, `build.sh`
 5. **Phase 5 - Documentation**: All `docs/` and `README.md`
 6. **Phase 6 - Release**: `release.sh` and PyPI publication
 
