@@ -1,6 +1,6 @@
 # pati
 
-[![PyPI Version](https://img.shields.io/pypi/v/pati.svg)](https://pypi.org/project/pati/)
+[![PyPI Version](https://img.shields.io/pypi/v/patisserie.svg)](https://pypi.org/project/patisserie/)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE-MIT)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE-APACHE)
@@ -22,7 +22,7 @@ Define your data model once in YAML. Generate boilerplate code in any language (
 ### Installation
 
 ```bash
-pip install pati
+pip install patisserie
 ```
 
 ### 5-Minute Example

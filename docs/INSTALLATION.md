@@ -17,7 +17,7 @@ pati is dual-licensed under the **MIT License** and the **Apache License 2.0**. 
 Install pati from PyPI:
 
 ```bash
-pip install pati
+pip install patisserie
 ```
 
 ## Verify Installation
@@ -145,7 +145,7 @@ source venv/bin/activate
 venv\Scripts\activate
 
 # Install pati
-pip install pati
+pip install patisserie
 
 # Or for development
 git clone https://github.com/yourusername/pati.git
@@ -179,7 +179,7 @@ If you get permission errors when installing to system Python, use a virtual env
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install pati
+pip install patisserie
 ```
 
 ### Default schema not found

@@ -5,7 +5,7 @@ with open("src/pati/__init__.py") as f:
     version = re.search(r'__version__ = "([^"]+)"', f.read()).group(1)
 
 setup(
-    name="pati",
+    name="patisserie",
     version=version,
     author="Peter Verhas",
     author_email="peter.verhas@gmail.com",

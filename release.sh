@@ -44,4 +44,4 @@ git tag -a "v${VERSION}" -m "Release version ${VERSION}"
 git push origin "v${VERSION}"
 
 echo -e "${GREEN}✓ Release v${VERSION} complete!${NC}"
-echo -e "${GREEN}✓ Package available at: https://pypi.org/project/pati/${VERSION}/${NC}"
+echo -e "${GREEN}✓ Package available at: https://pypi.org/project/patisserie/${VERSION}/${NC}"

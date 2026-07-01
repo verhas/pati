@@ -7,7 +7,7 @@ Get up and running with pati in 5 minutes!
 ## 1. Install pati
 
 ```bash
-pip install pati
+pip install patisserie
 ```
 
 ## 2. Initialize a Project
