@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import fnmatch
 import logging
 import sys
 from pathlib import Path
@@ -42,6 +43,19 @@ def cmd_generate(args):
     except Exception as e:
         logger.error(f"Failed to initialize generator: {e}")
         return 1
+
+    all_jobs = config.get('jobs', {})
+
+    if args.jobs:
+        patterns = args.jobs
+        selected = {
+            name: job for name, job in all_jobs.items()
+            if any(fnmatch.fnmatch(name, p) for p in patterns)
+        }
+        unmatched = [p for p in patterns if not any(fnmatch.fnmatch(n, p) for n in all_jobs)]
+        for p in unmatched:
+            logger.warning(f"No jobs matched pattern: {p}")
+        config = dict(config, jobs=selected)
 
     if args.output_dir:
         for job_name, job in config.get('jobs', {}).items():
@@ -199,13 +213,17 @@ def main():
     )
 
     parser.add_argument('--version', '-v', action='version', version=f'%(prog)s {__version__}')
-    parser.add_argument('--verbose', action='store_true', help='Enable verbose logging')
+    level_group = parser.add_mutually_exclusive_group()
+    level_group.add_argument('--verbose', action='store_true', help='Enable verbose/debug logging')
+    level_group.add_argument('--quiet', '-q', action='store_true', help='Print only warnings and errors')
+    level_group.add_argument('--silent', '-s', action='store_true', help='Print only errors')
 
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
 
     # generate command
     gen_parser = subparsers.add_parser('generate', help='Generate boilerplate from schema')
-    gen_parser.add_argument('config', nargs='?', default=None, help='Path to schema file (default: .sommelier/schema.yaml)')
+    gen_parser.add_argument('--config', '-c', nargs='?', default=None, help='Path to schema file (default: .sommelier/schema.yaml)')
+    gen_parser.add_argument('jobs', nargs='*', metavar='JOB', help='Job name(s) or glob patterns to run (default: all jobs)')
     gen_parser.add_argument('--dry-run', action='store_true', help='Show what would be generated without writing')
     gen_parser.add_argument('--output-dir', help='Override output directory for all jobs')
     gen_parser.set_defaults(func=cmd_generate)
@@ -223,6 +241,10 @@ def main():
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+    elif args.quiet:
+        logging.getLogger().setLevel(logging.WARNING)
+    elif args.silent:
+        logging.getLogger().setLevel(logging.ERROR)
 
     if not hasattr(args, 'func'):
         parser.print_help()

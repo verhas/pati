@@ -29,16 +29,15 @@ pip install sommelier
 
 1. **Initialize a project:**
    ```bash
-   sommelier init --template java-spring --output my-project
-   cd my-project
+   mkdir my-project && cd my-project
+   sommelier init
    ```
 
-2. **Edit your data model** (`schema.yaml`):
+2. **Edit your data model** (`.sommelier/schema.yaml`):
    ```yaml
-   template_dir: templates
-   
    jobs:
-     - template: entity.java.j2
+     user_entity:
+       template: entity.java.j2
        output: generated/User.java
        context:
          package: com.example
@@ -50,7 +49,7 @@ pip install sommelier
              type: String
    ```
 
-3. **Create a Jinja2 template** (`templates/entity.java.j2`):
+3. **Customize a template** (`.sommelier/tmplts/entity.java.j2`):
    ```jinja2
    package {{ package }};
    
@@ -63,7 +62,7 @@ pip install sommelier
 
 4. **Generate code:**
    ```bash
-   sommelier generate schema.yaml
+   sommelier generate
    ```
 
 5. **Check the output:**
@@ -88,20 +87,32 @@ pip install sommelier
 
 ### 🛠️ CLI Tools
 ```bash
-# Generate code from schema
-sommelier generate schema.yaml
+# Generate all jobs from default schema (.sommelier/schema.yaml)
+sommelier generate
+
+# Generate specific job(s) by name
+sommelier generate pojo_user
+
+# Generate jobs matching a glob pattern
+sommelier generate 'pojo*'
+
+# Generate jobs matching multiple patterns
+sommelier generate 'pojo*' dto_user
+
+# Generate from a specific schema
+sommelier generate --config path/to/schema.yaml
 
 # Dry run (preview without writing)
-sommelier generate schema.yaml --dry-run
+sommelier generate --dry-run
 
 # Override output directory
-sommelier generate schema.yaml --output-dir /path/to/output
+sommelier generate --output-dir /path/to/output
 
 # Initialize new project
-sommelier init --template java-spring --output my-project
+sommelier init
 
-# List available templates
-sommelier list-templates
+# List available example templates
+sommelier list
 ```
 
 ### 📦 Built-in Examples
@@ -123,15 +134,18 @@ sommelier list-templates
 ### Multi-language ORM Models
 ```yaml
 jobs:
-  - template: entity.java.j2
+  user_java:
+    template: entity.java.j2
     output: src/main/java/User.java
     context: { class_name: User, fields: [...] }
   
-  - template: model.py.j2
+  user_python:
+    template: model.py.j2
     output: models/user.py
     context: { class_name: User, fields: [...] }
   
-  - template: model.rs.j2
+  user_rust:
+    template: model.rs.j2
     output: src/models/user.rs
     context: { struct_name: User, fields: [...] }
 ```
@@ -192,22 +206,30 @@ pytest tests/ -v --cov
 ## CLI Reference
 
 ```bash
-# Generate from schema
-sommelier generate CONFIG.yaml [OPTIONS]
+# Generate from default schema
+sommelier generate [JOB ...] [OPTIONS]
+  JOB                     Job name(s) or glob patterns to run (default: all)
+                          Examples: pojo_user  'pojo*'  'pojo*' dto_user
+  --config, -c FILE       Path to schema file (default: .sommelier/schema.yaml)
   --dry-run               Show what would be generated without writing
   --output-dir DIR        Override output directory for all jobs
-  --verbose, -v           Enable verbose logging
 
-# Initialize new project
+# Initialize new project structure
 sommelier init [OPTIONS]
-  --template NAME         Template name (default: java-spring)
-  --output, -o DIR        Output directory (default: current)
+  --output, -o DIR        Output directory (default: current directory)
 
-# List templates
-sommelier list-templates
+# List available example templates
+sommelier list
 
 # Show version
-sommelier --version
+sommelier --version, -v
+
+# Logging level (global flags, mutually exclusive)
+sommelier --verbose COMMAND   # debug output
+sommelier --quiet COMMAND     # warnings and errors only
+sommelier -q COMMAND
+sommelier --silent COMMAND    # errors only
+sommelier -s COMMAND
 
 # Show help
 sommelier --help

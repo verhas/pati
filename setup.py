@@ -1,8 +1,12 @@
+import re
 from setuptools import setup, find_packages
+
+with open("src/sommelier/__init__.py") as f:
+    version = re.search(r'__version__ = "([^"]+)"', f.read()).group(1)
 
 setup(
     name="sommelier",
-    version="0.1.0",
+    version=version,
     author="Peter Verhas",
     author_email="peter.verhas@gmail.com",
     description="Language-agnostic boilerplate generator from YAML data models",

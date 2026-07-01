@@ -9,10 +9,10 @@ class {{ class_name }}(Base):
 
 {% for field in fields %}
     {{ field.name }} = Column(
-        {{ field.type }}{{ ",  # primary key" if field.primary_key else "" }}{{ ",  # unique" if field.unique else "" }}{{ ",  # nullable" if field.nullable is sameas false else "" }}
-        {% if field.primary_key %}primary_key=True{% endif %}{{ "," if (field.default or (field.unique or field.nullable is sameas false)) and field.primary_key else "" }}
-        {% if field.default %}default={{ field.default }}{% endif %}{{ "," if field.unique and field.default else "" }}
-        {% if field.unique %}unique=True{% endif %}{{ "," if field.nullable is sameas false and (field.unique or field.default) else "" }}
+        {{ field.type }}{{ ",  # primary key" if field.primary_key | default(false) else "" }}{{ ",  # unique" if field.unique | default(false) else "" }}{{ ",  # nullable" if field.nullable is sameas false else "" }}
+        {% if field.primary_key | default(false) %}primary_key=True{% endif %}{{ "," if (field.default | default(false) or (field.unique | default(false) or field.nullable is sameas false)) and field.primary_key | default(false) else "" }}
+        {% if field.default | default(false) %}default={{ field.default }}{% endif %}{{ "," if field.unique | default(false) and field.default | default(false) else "" }}
+        {% if field.unique | default(false) %}unique=True{% endif %}{{ "," if field.nullable is sameas false and (field.unique | default(false) or field.default | default(false)) else "" }}
         {% if field.nullable is sameas false %}nullable=False{% endif %}
     )
 

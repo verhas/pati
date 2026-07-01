@@ -195,29 +195,47 @@ jobs:
 ## Common Commands
 
 ```bash
-# Generate using default schema (.sommelier/schema.yaml)
+# Generate all jobs from default schema (.sommelier/schema.yaml)
 sommelier generate
+
+# Generate a single job by name
+sommelier generate pojo_user
+
+# Generate jobs matching a glob pattern
+sommelier generate 'pojo*'
+
+# Generate jobs matching multiple patterns
+sommelier generate 'pojo*' dto_user
 
 # Generate with dry-run
 sommelier generate --dry-run
 
-# Generate from specific schema
-sommelier generate path/to/schema.yaml
+# Generate from a specific schema
+sommelier generate --config path/to/schema.yaml
 
 # Override output directory
 sommelier generate --output-dir /path/to/output
 
-# List available templates
+# List available example templates
 sommelier list
 
 # Initialize new project
 sommelier init
 
+# Initialize into a specific directory
+sommelier init --output my-project
+
 # Show version
 sommelier --version
 
+# Logging level (global, mutually exclusive)
+sommelier --verbose generate    # debug output
+sommelier --quiet generate      # warnings and errors only (-q)
+sommelier --silent generate     # errors only (-s)
+
 # Show help
 sommelier --help
+sommelier generate --help
 ```
 
 ## Tips
